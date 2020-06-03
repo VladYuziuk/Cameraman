@@ -25,7 +25,7 @@
 namespace chalk\cameraman\movement;
 
 use chalk\cameraman\Cameraman;
-use pocketmine\level\Location;
+use pocketmine\entity\Location;
 
 class StraightMovement extends Movement {
     /** @var Location */

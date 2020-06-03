@@ -24,7 +24,7 @@
 
 namespace chalk\cameraman\movement;
 
-use pocketmine\level\Location;
+use pocketmine\entity\Location;
 
 abstract class Movement {
     /** @var Location */

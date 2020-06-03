@@ -9,14 +9,10 @@ namespace chalk\cameraman\task;
 
 
 use chalk\cameraman\Cameraman;
-use pocketmine\scheduler\PluginTask;
+use pocketmine\scheduler\Task;
 
-class AutoSaveTask extends PluginTask {
-    public function __construct(){
-        parent::__construct(Cameraman::getInstance());
-    }
-
-    public function onRun($currentTick){
+class AutoSaveTask extends Task {
+    public function onRun(): void{
         Cameraman::getInstance()->saveConfigs();
     }
 }

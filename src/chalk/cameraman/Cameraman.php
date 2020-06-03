@@ -30,13 +30,13 @@ use chalk\cameraman\task\AutoSaveTask;
 use chalk\utils\Messages;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\entity\Location;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\server\DataPacketReceiveEvent;
-use pocketmine\level\Location;
 use pocketmine\math\Vector3;
-use pocketmine\network\protocol\MovePlayerPacket;
-use pocketmine\Player;
+use pocketmine\network\mcpe\protocol\MovePlayerPacket;
+use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
@@ -78,7 +78,7 @@ class Cameraman extends PluginBase implements Listener {
         $this->loadMessages();
 
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
-        $this->getServer()->getScheduler()->scheduleRepeatingTask(new AutoSaveTask(), 20 * 60 * 15); //15m
+        $this->getScheduler()->scheduleRepeatingTask(new AutoSaveTask(), 20 * 60 * 15); //15m
     }
 
     public function onDisable(){
@@ -92,7 +92,7 @@ class Cameraman extends PluginBase implements Listener {
     }
 
     public function onDataPacketReceive(DataPacketReceiveEvent $event){
-        if($event->getPacket() instanceof MovePlayerPacket and ($camera = $this->getCamera($event->getPlayer())) !== null and $camera->isRunning()){
+        if($event->getPacket() instanceof MovePlayerPacket and ($camera = $this->getCamera($event->getOrigin()->getPlayer())) !== null and $camera->isRunning()){
             $event->setCancelled(true);
         }
     }
@@ -139,7 +139,7 @@ class Cameraman extends PluginBase implements Listener {
             foreach($waypoints as $waypoint){
                 $x = floatval($waypoint["x"]); $y = floatval($waypoint["y"]); $z = floatval($waypoint["y"]);
                 $yaw = floatval($waypoint["yaw"]); $pitch = floatval($waypoint["pitch"]);
-                $level = $this->getServer()->getLevelByName($waypoint["level"]);
+                $level = $this->getServer()->getWorldManager()->getWorldByName($waypoint["level"]);
 
                 $this->waypointMap[$key][] = new Location($x, $y, $z, $yaw, $pitch, $level);
             }
@@ -157,7 +157,7 @@ class Cameraman extends PluginBase implements Listener {
                 $waypointMap[$key][] = [
                     "x" => $waypoint->getX(), "y" => $waypoint->getY(), "z" => $waypoint->getZ(),
                     "yaw" => $waypoint->getYaw(), "pitch" => $waypoint->getPitch(),
-                    "level" => $waypoint->isValid() ? $waypoint->getLevel()->getName() : null
+                    "level" => $waypoint->isValid() ? $waypoint->getWorld()->getFolderName() : null
                 ];
             }
         }
@@ -272,16 +272,14 @@ class Cameraman extends PluginBase implements Listener {
      */
     public static function sendMovePlayerPacket(Player $player){
         $packet = new MovePlayerPacket();
-        $packet->eid = 0;
-        $packet->x = $player->getX();
-        $packet->y = $player->getY();
-        $packet->z = $player->getZ();
-        $packet->yaw = $player->getYaw();
-        $packet->bodyYaw = $player->getYaw();
-        $packet->pitch = $player->getPitch();
+        $packet->entityRuntimeId = 0;
+        $packet->position = $player->getPosition()->asVector3();
+        $packet->yaw = $player->getLocation()->getYaw();
+        $packet->pitch = $player->getLocation()->getPitch();
+        $packet->headYaw = $player->getLocation()->getYaw();
         $packet->onGround = false;
 
-        return $player->dataPacket($packet);
+        return $player->getNetworkSession()->sendDataPacket($packet);
     }
 
     /* ====================================================================================================================== *
@@ -431,7 +429,7 @@ class Cameraman extends PluginBase implements Listener {
      * @param array $args
      * @return bool
      */
-    public function onCommand(CommandSender $sender, Command $command, $commandAlias, array $args){
+    public function onCommand(CommandSender $sender, Command $command, string $commandAlias, array $args): bool{
         if(!$sender instanceof Player){
             $this->sendMessage($sender, "#error-only-in-game");
             return true;

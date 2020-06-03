@@ -24,7 +24,8 @@
 
 namespace chalk\cameraman\movement;
 
-use pocketmine\level\Location;
+
+use pocketmine\entity\Location;
 
 class CurvedMovement extends StraightMovement {
     /**

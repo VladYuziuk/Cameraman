@@ -26,9 +26,10 @@ namespace chalk\cameraman\task;
 
 use chalk\cameraman\Camera;
 use chalk\cameraman\Cameraman;
-use pocketmine\scheduler\PluginTask;
+use pocketmine\network\mcpe\protocol\MovePlayerPacket;
+use pocketmine\scheduler\Task;
 
-class CameraTask extends PluginTask {
+class CameraTask extends Task {
     /** @var Camera */
     private $camera;
 
@@ -36,14 +37,10 @@ class CameraTask extends PluginTask {
     private $index = -1;
 
     function __construct(Camera $camera){
-        parent::__construct(Cameraman::getInstance());
         $this->camera = $camera;
     }
 
-    /**
-     * @param $currentTick
-     */
-    public function onRun($currentTick){
+    public function onRun(): void{
         if($this->index < 0){
             Cameraman::getInstance()->sendMessage($this->getCamera()->getTarget(), "message-travelling-started", ["slowness" => $this->getCamera()->getSlowness()]);
             $this->index = 0;
@@ -59,7 +56,8 @@ class CameraTask extends PluginTask {
             return;
         }
 
-        $this->getCamera()->getTarget()->setPositionAndRotation($location, $location->getYaw(), $location->getPitch());
+        $player = $this->getCamera()->getTarget();
+        $player->sendPosition($location->asVector3(), $location->getYaw(), $location->getPitch(), MovePlayerPacket::MODE_TELEPORT);
         Cameraman::sendMovePlayerPacket($this->getCamera()->getTarget());
     }
 
